@@ -1,0 +1,11 @@
+{
+  "domain": "tuya_ir_ac",
+  "name": "Tuya IR AC Remote",
+  "codeowners": ["@orbitalno11"],
+  "config_flow": true,
+  "documentation": "https://github.com/orbitalno11/tuya-ir-ac-remote",
+  "issue_tracker": "https://github.com/orbitalno11/tuya-ir-ac-remote/issues",
+  "iot_class": "assumed_state",
+  "requirements": ["tinytuya>=1.13.0"],
+  "version": "0.1.0"
+}

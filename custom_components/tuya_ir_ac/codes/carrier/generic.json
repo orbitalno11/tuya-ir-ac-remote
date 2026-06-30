@@ -1,0 +1,28 @@
+{
+  "brand": "carrier",
+  "variant": "generic",
+  "protocol": "state",
+  "description": "PLACEHOLDER codeset -- structurally valid Tuya IR codes generated for development/testing only. These are NOT verified against a real Carrier remote and are unlikely to control your AC correctly. Use the integration's Learn Command options flow to capture real codes from your physical remote, which always take precedence.",
+  "min_temp": 16,
+  "max_temp": 30,
+  "temp_step": 1,
+  "fan_modes": [
+    "auto",
+    "low",
+    "medium",
+    "high"
+  ],
+  "swing_modes": [
+    "off",
+    "on"
+  ],
+  "codes": {
+    "off": "KCOUETMCMwIzAjMCMwIzAjMCMwIzAjMCMwKYBjMCMwIzAjMCMwKYBjMCmAYzApgGMwKYBjMCmAYzAjMCMwKYBjMCmAYzAjMCMwIzAjMCMwIzAjMCMwIzAjMCMwIzAjMCMwIzAjMCmAYzApgGMwKYBjMCmAYzApgGMwKYBjMCmAYzApgGMwIwdQ==",
+    "cool_24_auto_off": "KCOUETMCMwIzAjMCMwIzAjMCMwIzAjMCMwKYBjMCMwIzAjMCMwKYBjMCmAYzApgGMwKYBjMCmAYzAjMCMwKYBjMCmAYzAjMCMwIzAjMCMwIzApgGMwKYBjMCMwIzAjMCMwIzAjMCmAYzApgGMwKYBjMCMwIzAjMCMwKYBjMCmAYzApgGMwIwdQ==",
+    "cool_22_auto_off": "KCOUETMCMwIzAjMCMwIzAjMCMwIzAjMCMwKYBjMCMwIzAjMCMwKYBjMCmAYzApgGMwKYBjMCmAYzAjMCMwKYBjMCmAYzAjMCMwKYBjMCmAYzAjMCMwKYBjMCMwIzAjMCMwIzAjMCmAYzAjMCMwIzAjMCmAYzAjMCMwKYBjMCmAYzApgGMwIwdQ==",
+    "cool_26_auto_off": "KCOUETMCMwIzAjMCMwIzAjMCMwIzAjMCMwKYBjMCMwIzAjMCMwKYBjMCmAYzApgGMwKYBjMCmAYzAjMCMwKYBjMCmAYzAjMCMwKYBjMCMwIzApgGMwKYBjMCMwIzAjMCMwIzAjMCmAYzAjMCMwKYBjMCMwIzAjMCMwKYBjMCmAYzApgGMwIwdQ==",
+    "heat_22_auto_off": "KCOUETMCMwIzAjMCMwIzAjMCMwIzAjMCMwKYBjMCMwIzAjMCMwKYBjMCmAYzApgGMwKYBjMCmAYzAjMCMwKYBjMCmAYzAjMCMwKYBjMCmAYzAjMCMwKYBjMCmAYzAjMCMwIzAjMCmAYzAjMCMwIzAjMCmAYzAjMCMwIzAjMCmAYzApgGMwIwdQ==",
+    "dry_24_auto_off": "KCOUETMCMwIzAjMCMwIzAjMCMwIzAjMCMwKYBjMCMwIzAjMCMwKYBjMCmAYzApgGMwKYBjMCmAYzAjMCMwKYBjMCmAYzAjMCMwIzAjMCMwIzApgGMwKYBjMCMwIzApgGMwIzAjMCmAYzApgGMwKYBjMCMwIzAjMCMwKYBjMCMwIzApgGMwIwdQ==",
+    "fan_only_none_high_off": "KCOUETMCMwIzAjMCMwIzAjMCMwIzAjMCMwKYBjMCMwIzAjMCMwKYBjMCmAYzApgGMwKYBjMCmAYzAjMCMwKYBjMCmAYzAjMCMwIzAjMCMwIzAjMCMwKYBjMCmAYzApgGMwIzAjMCmAYzApgGMwKYBjMCmAYzAjMCMwIzAjMCMwIzApgGMwIwdQ=="
+  }
+}

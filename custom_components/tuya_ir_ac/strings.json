@@ -1,0 +1,60 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to your Tuya IR hub",
+        "description": "Enter the local network details for the Tuya IR hub that will control this AC unit. Use the `tinytuya wizard` command-line tool to extract the device ID and local key from your Tuya/Smart Life account.",
+        "data": {
+          "name": "Name",
+          "host": "Host (IP address)",
+          "device_id": "Device ID",
+          "local_key": "Local key",
+          "protocol_version": "Protocol version"
+        }
+      },
+      "brand": {
+        "title": "Select the AC brand",
+        "data": {
+          "brand": "Brand"
+        }
+      },
+      "variant": {
+        "title": "Select a starting codeset",
+        "description": "Choose a built-in code variant for {brand}. Built-in codes are best-effort and may not match your exact model -- you can override any individual command later using this entity's Learn Command option.",
+        "data": {
+          "variant": "Variant"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Could not authenticate with the hub -- the local key is likely incorrect.",
+      "cannot_connect": "Could not connect to the Tuya IR hub. Check the host/IP address and that the hub is powered on and reachable on your network.",
+      "unknown": "Unexpected error while connecting to the hub."
+    },
+    "abort": {
+      "already_configured": "This AC unit (same hub device and name) is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Learn Command",
+        "description": "Select which command(s) you want to (re)learn from your real remote. Learned codes always take precedence over the built-in codeset.",
+        "data": {
+          "keys": "Commands to learn"
+        }
+      },
+      "capture": {
+        "title": "Press the button now",
+        "description": "Point your real remote at the Tuya IR hub and press the button for: {state_key}. Capturing will time out after {timeout} seconds if no button is pressed."
+      }
+    },
+    "error": {
+      "learn_timeout": "No button press was detected in time. Try again.",
+      "cannot_connect": "Lost connection to the hub while learning. Check that the hub is still reachable, then try again."
+    },
+    "abort": {
+      "no_keys_selected": "No commands were selected to learn."
+    }
+  }
+}
