@@ -18,6 +18,11 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
+          # This repo is intentionally a private/unlisted custom HACS
+          # repository, not submitted to the default store -- skip checks
+          # that only matter for default-store inclusion (repo topics,
+          # repo description, brands repo registration).
+          ignore: "brands topics description"
 
   hassfest:
     name: Hassfest validation
