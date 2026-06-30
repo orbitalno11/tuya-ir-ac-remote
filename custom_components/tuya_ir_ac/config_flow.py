@@ -140,14 +140,21 @@ class TuyaIrAcConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> TuyaIrAcOptionsFlow:
         """Get the Learn Command options flow for an existing entry."""
-        return TuyaIrAcOptionsFlow(config_entry)
+        return TuyaIrAcOptionsFlow()
 
 
 class TuyaIrAcOptionsFlow(config_entries.OptionsFlow):
-    """Learn Command flow: capture real IR codes from the user's remote."""
+    """Learn Command flow: capture real IR codes from the user's remote.
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
+    Uses self.handler (the config entry_id, set by the flow manager for
+    every options flow) instead of self.config_entry: older Home Assistant
+    versions require config_entry to be stored manually in __init__, while
+    current versions expose it as a read-only property populated by the
+    flow manager -- assigning to it directly raises AttributeError on those
+    versions. self.handler is stable and available on both.
+    """
+
+    def __init__(self) -> None:
         self._pending_keys: list[str] = []
         self._current_key: str | None = None
         self._captured: dict[str, str] = {}
@@ -176,7 +183,7 @@ class TuyaIrAcOptionsFlow(config_entries.OptionsFlow):
     async def _async_advance_capture(self) -> config_entries.ConfigFlowResult:
         """Move to the next pending key, or finish and persist captured codes."""
         if not self._pending_keys:
-            entry_id = self.config_entry.entry_id
+            entry_id = self.handler
             entry_data = self.hass.data[DOMAIN][entry_id]
             entry_data["learned_codes"].update(self._captured)
             store: Store = entry_data["store"]
@@ -195,7 +202,7 @@ class TuyaIrAcOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            hub: TuyaIrHub = self.hass.data[DOMAIN][self.config_entry.entry_id]["hub"]
+            hub: TuyaIrHub = self.hass.data[DOMAIN][self.handler]["hub"]
             try:
                 code = await hub.async_learn_code(timeout=LEARN_TIMEOUT)
             except TuyaIrTimeoutError:
