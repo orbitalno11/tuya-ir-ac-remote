@@ -64,6 +64,15 @@ below). This is the reliable path.
 4. Find **Tuya IR AC Remote** in HACS and install it.
 5. Restart Home Assistant.
 
+### Getting notified about updates
+
+New versions are published as GitHub Releases (see
+[RELEASING.md](RELEASING.md)). HACS checks this repo periodically and will
+show an update badge -- and, if you've enabled HACS's own update
+notifications, a Home Assistant notification -- as soon as a new release
+is out. There's nothing extra to configure: just keep this repo added as a
+custom repository in HACS.
+
 ## Adding an AC unit
 
 Each Home Assistant config entry represents **one AC unit**. If you have

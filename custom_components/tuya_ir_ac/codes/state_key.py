@@ -11,6 +11,11 @@ from __future__ import annotations
 from ..const import STATE_KEY_OFF
 
 HVAC_MODE_OFF = "off"
+HVAC_MODE_FAN_ONLY = "fan_only"
+
+# Modes that do not carry a target temperature -- their state keys use the
+# "none" temperature part so they match the bundled/learned code tables.
+TEMPERATURELESS_MODES = frozenset({HVAC_MODE_FAN_ONLY})
 
 
 def build_state_key(
@@ -23,5 +28,8 @@ def build_state_key(
     if hvac_mode == HVAC_MODE_OFF:
         return STATE_KEY_OFF
 
-    temp_part = "none" if temperature is None else str(int(round(temperature)))
+    if hvac_mode in TEMPERATURELESS_MODES or temperature is None:
+        temp_part = "none"
+    else:
+        temp_part = str(int(round(temperature)))
     return f"{hvac_mode}_{temp_part}_{fan_mode}_{swing_mode}"
