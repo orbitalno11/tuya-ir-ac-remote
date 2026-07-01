@@ -7,5 +7,5 @@
   "iot_class": "assumed_state",
   "issue_tracker": "https://github.com/orbitalno11/tuya-ir-ac-remote/issues",
   "requirements": ["tinytuya>=1.13.0"],
-  "version": "0.1.1-alpha-01"
+  "version": "0.1.1-alpha-02"
 }

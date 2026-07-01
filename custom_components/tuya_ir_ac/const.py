@@ -50,17 +50,29 @@ STATE_KEY_OFF = "off"
 LEARN_TIMEOUT = 15  # seconds to wait for a button press during a Learn Command step
 CONNECT_RETRIES = 2
 
-# Curated punch-list of state keys offered by the Learn Command flow.
-# Kept short on purpose -- learning every possible combination is impractical;
-# users can re-run the flow for additional combinations as needed.
+# Modes/temps/fans covered by the full Learn Command punch list below.
+# Swing is fixed to "off" -- swinging louvers aren't part of this range on
+# purpose (re-run the flow manually for swing "on" combinations if needed).
+LEARN_HVAC_MODES = ["auto", "cool", "dry"]
+LEARN_MIN_TEMP = 16
+LEARN_MAX_TEMP = 30
+LEARN_FAN_MODES = [FAN_MODE_AUTO, FAN_MODE_LOW, FAN_MODE_MEDIUM, FAN_MODE_HIGH]
+LEARN_SWING_MODE = SWING_MODE_OFF
+
+# Punch-list of state keys offered by the Learn Command flow: "off",
+# fan-only, plus every (mode, temp, fan) combination above at swing "off".
+# This is intentionally large (~180 entries covering auto/cool/dry across
+# 16-30 degC and all four fan speeds) -- teaching all of it means pressing
+# that many buttons on the real remote, one Learn Command step at a time.
 LEARN_PUNCH_LIST = [
     STATE_KEY_OFF,
-    "cool_24_auto_off",
-    "cool_22_auto_off",
-    "cool_26_auto_off",
-    "heat_22_auto_off",
-    "dry_24_auto_off",
     "fan_only_none_high_off",
+    *(
+        f"{mode}_{temp}_{fan}_{LEARN_SWING_MODE}"
+        for mode in LEARN_HVAC_MODES
+        for temp in range(LEARN_MIN_TEMP, LEARN_MAX_TEMP + 1)
+        for fan in LEARN_FAN_MODES
+    ),
 ]
 
 STORAGE_VERSION = 1

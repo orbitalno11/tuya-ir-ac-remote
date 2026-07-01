@@ -22,13 +22,13 @@ Two sources of codes, merged together (learned always wins):
 
 1. **Built-in codesets** (`custom_components/tuya_ir_ac/codes/<brand>/*.json`)
    -- bundled for convenience. **Important:** the codesets currently
-   shipped (`panasonic/generic.json`, `carrier/generic.json`) are
-   placeholders generated for development/testing. They are structurally
-   valid Tuya IR codes but have **not** been verified against a real
-   Panasonic or Carrier remote, and are unlikely to control your AC
-   correctly out of the box. Treat them as a scaffold, not a working
-   codeset. Verified, brand/model-specific codesets are a great target for
-   future contributions.
+   shipped (`panasonic/generic.json`, `panasonic/cs_yu18zkt.json`,
+   `carrier/generic.json`) are placeholders generated for
+   development/testing. They are structurally valid Tuya IR codes but have
+   **not** been verified against a real Panasonic or Carrier remote, and are
+   unlikely to control your AC correctly out of the box. Treat them as a
+   scaffold, not a working codeset. Verified, brand/model-specific codesets
+   are a great target for future contributions.
 2. **Learn Command** -- point your actual remote at the Tuya hub and
    capture its real codes through the integration's options flow. Learned
    codes always override the built-in table for that exact combination,
@@ -87,8 +87,9 @@ different name.
    `local_key`, protocol version (3.3 is correct for most modern hubs), and
    a name for this AC unit.
 4. Choose the brand (Panasonic / Carrier / Generic).
-5. Choose a starting codeset variant (currently only `generic` is
-   available per brand -- see the codeset caveat above).
+5. Choose a starting codeset variant (`generic`, or for Panasonic also
+   `cs_yu18zkt` -- see the codeset caveat above; all variants are
+   placeholders until you Learn Command your own codes).
 6. The climate entity is created. At this point treat it as a starting
    point and follow up with Learn Command below.
 
@@ -132,9 +133,12 @@ saved cloud credentials after the entry is created.
 
 1. Find the AC unit's entity in **Settings → Devices & Services → Tuya IR
    AC Remote**, and click **Configure**.
-2. Select which command(s) you want to (re)learn -- a short curated list
-   (off, a couple of cool/heat/dry temperatures, fan-only) covers most
-   day-to-day use. You can re-run this flow any time to add more.
+2. Select which command(s) you want to (re)learn -- the list covers `off`,
+   fan-only, and every `auto`/`cool`/`dry` combination across 16-30°C and
+   all four fan speeds at swing off (~180 entries total). You don't have to
+   teach all of it in one sitting: select only the combinations you
+   actually use, and re-run this flow any time to add more (e.g. `heat` or
+   swing "on", which aren't in the default list -- see the note below).
 3. For each selected command, point your real remote at the Tuya hub and
    press the matching button within the timeout. If it times out, you'll
    be prompted to try again.
@@ -143,7 +147,15 @@ saved cloud credentials after the entry is created.
 
 If you ever issue a command that has no known code (built-in or learned),
 the climate entity raises an error telling you which combination is
-missing -- use Learn Command to teach exactly that one.
+missing.
+
+**Note:** the Learn Command checklist only offers the combinations listed
+above -- there's no free-text/manual entry, so `heat` mode and swing "on"
+currently **cannot** be taught through this flow at all (not because
+they're unsupported by the entity, just not on the fixed list it shows
+you). If you need those, extend `LEARN_PUNCH_LIST` in
+`custom_components/tuya_ir_ac/const.py` yourself, or ask for it to be
+added back.
 
 ## Known limitations
 
