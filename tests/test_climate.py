@@ -20,6 +20,7 @@ FAKE_TABLE = CodeTable(
         "cool_24_auto_off": "COOL24CODE",
         "cool_22_low_on": "COOL22LOWONCODE",
         "heat_22_auto_off": "HEAT22CODE",
+        "fan_only_none_high_off": "FANONLYCODE",
     },
 )
 
@@ -39,10 +40,23 @@ async def test_hvac_modes_derived_from_code_table(hass):
     assert HVACMode.OFF in entity.hvac_modes
     assert HVACMode.COOL in entity.hvac_modes
     assert HVACMode.HEAT in entity.hvac_modes
-    # no "dry"/"fan_only"/"auto" codes in FAKE_TABLE -> not advertised
+    # multi-word mode with a code is advertised (regression: previously the
+    # key was split on the first "_" and "fan_only" was mistaken for "fan")
+    assert HVACMode.FAN_ONLY in entity.hvac_modes
+    # no "dry"/"auto" codes in FAKE_TABLE -> not advertised
     assert HVACMode.DRY not in entity.hvac_modes
-    assert HVACMode.FAN_ONLY not in entity.hvac_modes
     assert HVACMode.AUTO not in entity.hvac_modes
+
+
+async def test_fan_only_sends_temperatureless_code(hass):
+    # fan_only lookup must ignore the (always-set) target temperature and
+    # match the "none" temp key in the table.
+    entity, hub = _make_entity(hass)
+    entity._attr_target_temperature = 16
+    entity._attr_fan_mode = "high"
+    entity._attr_swing_mode = "off"
+    await entity.async_set_hvac_mode(HVACMode.FAN_ONLY)
+    hub.async_send_code.assert_awaited_once_with("FANONLYCODE")
 
 
 async def test_initial_optimistic_state(hass):
