@@ -24,3 +24,10 @@ def test_state_protocol_combinations(hvac_mode, temperature, fan_mode, swing_mod
 
 def test_fan_only_with_no_temperature():
     assert build_state_key("fan_only", None, "high", "off") == "fan_only_none_high_off"
+
+
+def test_fan_only_ignores_temperature():
+    # fan_only carries no target temperature, so even a concrete temp value
+    # must yield the "none" temp part to match the bundled/learned tables.
+    assert build_state_key("fan_only", 16, "high", "off") == "fan_only_none_high_off"
+    assert build_state_key("fan_only", 24, "auto", "on") == "fan_only_none_auto_on"

@@ -120,9 +120,12 @@ class TuyaIrClimateEntity(ClimateEntity, RestoreEntity):
         for key in merged:
             if key == STATE_KEY_OFF:
                 continue
-            prefix = key.split("_", 1)[0]
-            if prefix in HVAC_MODE_BY_VALUE:
-                modes.add(HVAC_MODE_BY_VALUE[prefix])
+            # Match the mode by prefix rather than splitting on the first "_",
+            # so multi-word modes ("fan_only", "heat_cool") are recognised.
+            for mode_value, mode in HVAC_MODE_BY_VALUE.items():
+                if key == mode_value or key.startswith(f"{mode_value}_"):
+                    modes.add(mode)
+                    break
         ordered = [HVACMode.OFF]
         ordered += [mode for mode in CONTROLLABLE_HVAC_MODES if mode in modes]
         return ordered
@@ -141,7 +144,7 @@ class TuyaIrClimateEntity(ClimateEntity, RestoreEntity):
 
         attrs = last_state.attributes
         temperature = attrs.get(ATTR_TEMPERATURE)
-        if temperature is not None:
+        if temperature is not None and self._attr_min_temp <= temperature <= self._attr_max_temp:
             self._attr_target_temperature = temperature
 
         fan_mode = attrs.get(ATTR_FAN_MODE)
