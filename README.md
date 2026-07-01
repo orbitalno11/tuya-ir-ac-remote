@@ -72,14 +72,52 @@ pointing at the same `host` / `device_id` / `local_key` both times, with a
 different name.
 
 1. **Settings → Devices & Services → Add Integration → "Tuya IR AC Remote"**.
-2. Enter the hub's `host` (IP address), `device_id`, `local_key`, protocol
-   version (3.3 is correct for most modern hubs), and a name for this AC
-   unit.
-3. Choose the brand (Panasonic / Carrier / Generic).
-4. Choose a starting codeset variant (currently only `generic` is
+2. Pick **Enter hub details manually** or **Discover via Tuya Cloud API**
+   (see below for the cloud option).
+3. **Manual path**: enter the hub's `host` (IP address), `device_id`,
+   `local_key`, protocol version (3.3 is correct for most modern hubs), and
+   a name for this AC unit.
+4. Choose the brand (Panasonic / Carrier / Generic).
+5. Choose a starting codeset variant (currently only `generic` is
    available per brand -- see the codeset caveat above).
-5. The climate entity is created. At this point treat it as a starting
+6. The climate entity is created. At this point treat it as a starting
    point and follow up with Learn Command below.
+
+### Cloud-assisted setup (optional)
+
+Instead of manually running `tinytuya wizard` and copy-pasting
+`device_id`/`local_key`, you can authenticate once with your Tuya Cloud API
+credentials and pick your hub from a fetched device list:
+
+1. Create a **Cloud Development** project on the
+   [Tuya IoT Platform](https://iot.tuya.com), link it to the same Tuya/Smart
+   Life app account your hub is paired to, and note its **Access ID** and
+   **Access Secret**. Tuya's free trial projects expire after about a year --
+   if cloud lookup suddenly stops authenticating, check
+   iot.tuya.com and renew/re-link the project's Cloud Development service.
+2. In the config flow, pick **Discover via Tuya Cloud API**, enter the
+   Access ID/Secret and your account's region (`cn`, `us`, `us-e`, `eu`,
+   `eu-w`, `in`, or `sg`).
+3. Pick which device is your physical IR hub from the list. If that hub has
+   other devices registered under it in the Tuya cloud, you'll be offered a
+   list of those too -- picking one only prefills a friendly name and, if
+   the product name mentions it, a brand guess. **It never changes which
+   physical device gets contacted** -- IR is always sent to the hub you
+   picked in the previous step, using its own `device_id`/`local_key`.
+4. The Cloud API has no visibility into your local network, so you'll still
+   enter the hub's LAN IP address manually at this point.
+5. Continue with brand/variant selection as normal.
+
+Your Access ID/Secret are saved in this config entry (same plain storage
+Home Assistant already uses for `local_key`, i.e. `.storage/core.config_entries`
+protected only by OS file permissions -- not some special encrypted vault)
+so that adding another AC unit later can reuse them without re-entering.
+**This is setup-time only** -- once the entry is created, the integration
+never talks to the Tuya Cloud again; all runtime IR send/learn stays local.
+
+Not implemented (possible future additions, not attempted here): automatic
+LAN IP discovery for the selected hub, and an options-flow UI to edit/rotate
+saved cloud credentials after the entry is created.
 
 ## Learn Command (teaching codes from your real remote)
 
@@ -119,6 +157,14 @@ missing -- use Learn Command to teach exactly that one.
   with `tinytuya` mocked out, but real-world hub communication, IR
   transmission, and Learn Command capture need to be validated against
   actual hardware by you, the user.
+- **Cloud-assisted discovery is also unverified against a real Tuya Cloud
+  account** in this build environment (no credentials were available) --
+  automated tests fully mock the Tuya Cloud API. Whether `getdevices()`
+  actually returns a working `local_key` for your specific hub/account/
+  project type needs to be confirmed by you; if the returned key doesn't
+  work, use the manual path or Learn Command instead.
+- No automatic LAN IP discovery for a cloud-selected hub, and no options-flow
+  UI (yet) to edit/rotate saved Tuya Cloud credentials after setup.
 
 ## Development / testing
 
