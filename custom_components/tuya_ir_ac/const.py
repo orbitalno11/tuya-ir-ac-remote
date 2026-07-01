@@ -10,8 +10,18 @@ CONF_PROTOCOL_VERSION = "protocol_version"
 CONF_BRAND = "brand"
 CONF_VARIANT = "variant"
 
+# Tuya Cloud API credentials -- setup-time only, used to look up devices
+# during the config flow's "cloud discovery" path. Never used at runtime;
+# see tuya_cloud.py.
+CONF_ACCESS_ID = "access_id"
+CONF_ACCESS_SECRET = "access_secret"
+CONF_API_REGION = "api_region"
+
 DEFAULT_PROTOCOL_VERSION = "3.3"
 PROTOCOL_VERSIONS = ["3.1", "3.3", "3.4"]
+
+DEFAULT_API_REGION = "us"
+API_REGIONS = ["cn", "us", "us-e", "eu", "eu-w", "in", "sg"]
 
 BRAND_PANASONIC = "panasonic"
 BRAND_CARRIER = "carrier"

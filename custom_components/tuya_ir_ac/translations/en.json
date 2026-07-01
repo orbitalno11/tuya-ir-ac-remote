@@ -2,6 +2,13 @@
   "config": {
     "step": {
       "user": {
+        "title": "Add a Tuya IR AC unit",
+        "menu_options": {
+          "manual": "Enter hub details manually",
+          "cloud": "Discover via Tuya Cloud API"
+        }
+      },
+      "manual": {
         "title": "Connect to your Tuya IR hub",
         "description": "Enter the local network details for the Tuya IR hub that will control this AC unit. Use the `tinytuya wizard` command-line tool to extract the device ID and local key from your Tuya/Smart Life account.",
         "data": {
@@ -9,6 +16,38 @@
           "host": "Host (IP address)",
           "device_id": "Device ID",
           "local_key": "Local key",
+          "protocol_version": "Protocol version"
+        }
+      },
+      "cloud": {
+        "title": "Tuya Cloud API credentials",
+        "description": "Enter the Access ID and Access Secret from your Tuya IoT Platform Cloud project so we can fetch your device list instead of typing device_id/local_key manually. These credentials are only used here, during setup, and are saved so future 'add AC unit' flows can reuse them -- runtime IR control always stays local.",
+        "data": {
+          "access_id": "Access ID",
+          "access_secret": "Access Secret",
+          "api_region": "API region"
+        }
+      },
+      "cloud_hub": {
+        "title": "Select your Tuya IR hub",
+        "description": "Pick the device that is your physical Tuya IR hub.",
+        "data": {
+          "device_id": "Hub device"
+        }
+      },
+      "cloud_subdevice": {
+        "title": "Select a paired remote (optional)",
+        "description": "This hub has device(s) registered in the Tuya cloud. Picking one only prefills a friendly name/brand guess below -- it does not change which physical hub gets contacted.",
+        "data": {
+          "subdevice": "Paired device"
+        }
+      },
+      "cloud_host": {
+        "title": "Hub network address",
+        "description": "The Tuya Cloud API can't see your local network, so enter the hub's local IP address.",
+        "data": {
+          "name": "Name",
+          "host": "Host (IP address)",
           "protocol_version": "Protocol version"
         }
       },
@@ -27,9 +66,10 @@
       }
     },
     "error": {
-      "invalid_auth": "Could not authenticate with the hub -- the local key is likely incorrect.",
-      "cannot_connect": "Could not connect to the Tuya IR hub. Check the host/IP address and that the hub is powered on and reachable on your network.",
-      "unknown": "Unexpected error while connecting to the hub."
+      "invalid_auth": "Could not authenticate -- check the local key (manual) or Access ID/Secret (cloud).",
+      "cannot_connect": "Could not connect. Check the host/IP address and that the hub is powered on and reachable on your network.",
+      "unknown": "Unexpected error while connecting to the hub.",
+      "no_devices_found": "No devices were found in this Tuya account."
     },
     "abort": {
       "already_configured": "This AC unit (same hub device and name) is already configured."
