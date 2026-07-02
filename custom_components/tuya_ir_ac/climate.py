@@ -8,6 +8,7 @@ across restarts via RestoreEntity.
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from homeassistant.components.climate import (
@@ -23,7 +24,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.restore_state import ExtraStoredData, RestoreEntity
 
 from .codes.loader import get_merged_table, load_builtin_codeset
 from .codes.schema import CodeTable
@@ -42,6 +43,26 @@ CONTROLLABLE_HVAC_MODES = [
     HVACMode.FAN_ONLY,
     HVACMode.AUTO,
 ]
+
+
+@dataclass
+class TuyaIrLastActiveModeData(ExtraStoredData):
+    """Extra restore data so 'turn on' can resume the last active hvac mode.
+
+    The primary RestoreEntity state restore only ever recovers "off" itself
+    when the entity was off at last shutdown, with no record of what mode
+    preceded it -- this side-channel carries that one extra bit across
+    restarts.
+    """
+
+    last_active_hvac_mode: HVACMode | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, restored: dict[str, Any]) -> "TuyaIrLastActiveModeData":
+        return cls(last_active_hvac_mode=restored.get("last_active_hvac_mode"))
 
 
 async def async_setup_entry(
@@ -113,6 +134,10 @@ class TuyaIrClimateEntity(ClimateEntity, RestoreEntity):
         self._attr_fan_mode = self._attr_fan_modes[0] if self._attr_fan_modes else None
         self._attr_swing_mode = self._attr_swing_modes[0] if self._attr_swing_modes else None
 
+        # Most recent non-off hvac mode, so a "turn on" (e.g. from Google
+        # Assistant) can resume it instead of a fixed fallback mode.
+        self._attr_last_active_hvac_mode: HVACMode | None = None
+
     def _derive_supported_hvac_modes(self) -> list[HVACMode]:
         """Only advertise hvac modes that actually have a code in the table."""
         merged = get_merged_table(self._builtin_table, self._learned_codes)
@@ -134,26 +159,54 @@ class TuyaIrClimateEntity(ClimateEntity, RestoreEntity):
         """Restore optimistic state from the last known entity state."""
         await super().async_added_to_hass()
         last_state = await self.async_get_last_state()
-        if last_state is None:
-            return
+        if last_state is not None:
+            if last_state.state in HVAC_MODE_BY_VALUE and HVAC_MODE_BY_VALUE[
+                last_state.state
+            ] in (self._attr_hvac_modes or []):
+                self._attr_hvac_mode = HVAC_MODE_BY_VALUE[last_state.state]
 
-        if last_state.state in HVAC_MODE_BY_VALUE and HVAC_MODE_BY_VALUE[
-            last_state.state
-        ] in (self._attr_hvac_modes or []):
-            self._attr_hvac_mode = HVAC_MODE_BY_VALUE[last_state.state]
+            attrs = last_state.attributes
+            temperature = attrs.get(ATTR_TEMPERATURE)
+            if temperature is not None and self._attr_min_temp <= temperature <= self._attr_max_temp:
+                self._attr_target_temperature = temperature
 
-        attrs = last_state.attributes
-        temperature = attrs.get(ATTR_TEMPERATURE)
-        if temperature is not None and self._attr_min_temp <= temperature <= self._attr_max_temp:
-            self._attr_target_temperature = temperature
+            fan_mode = attrs.get(ATTR_FAN_MODE)
+            if fan_mode is not None and fan_mode in (self._attr_fan_modes or []):
+                self._attr_fan_mode = fan_mode
 
-        fan_mode = attrs.get(ATTR_FAN_MODE)
-        if fan_mode is not None and fan_mode in (self._attr_fan_modes or []):
-            self._attr_fan_mode = fan_mode
+            swing_mode = attrs.get(ATTR_SWING_MODE)
+            if swing_mode is not None and swing_mode in (self._attr_swing_modes or []):
+                self._attr_swing_mode = swing_mode
 
-        swing_mode = attrs.get(ATTR_SWING_MODE)
-        if swing_mode is not None and swing_mode in (self._attr_swing_modes or []):
-            self._attr_swing_mode = swing_mode
+        last_extra_data = await self.async_get_last_extra_data()
+        if last_extra_data is not None:
+            restored = TuyaIrLastActiveModeData.from_dict(last_extra_data.as_dict())
+            restored_mode = restored.last_active_hvac_mode
+            if restored_mode in HVAC_MODE_BY_VALUE and HVAC_MODE_BY_VALUE[
+                restored_mode
+            ] in (self._attr_hvac_modes or []):
+                self._attr_last_active_hvac_mode = HVAC_MODE_BY_VALUE[restored_mode]
+
+        if self._attr_last_active_hvac_mode is None:
+            if self._attr_hvac_mode != HVACMode.OFF:
+                # Upgrading from a version without extra-data tracking: the
+                # plain state restore above still gives a good signal here.
+                self._attr_last_active_hvac_mode = self._attr_hvac_mode
+            else:
+                controllable_modes = [
+                    mode
+                    for mode in (self._attr_hvac_modes or [])
+                    if mode != HVACMode.OFF
+                ]
+                if controllable_modes:
+                    self._attr_last_active_hvac_mode = controllable_modes[0]
+
+    @property
+    def extra_restore_state_data(self) -> ExtraStoredData:
+        """Return the last-active-mode data to persist for restore."""
+        return TuyaIrLastActiveModeData(
+            last_active_hvac_mode=self._attr_last_active_hvac_mode
+        )
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature and transmit the full updated state."""
@@ -167,8 +220,31 @@ class TuyaIrClimateEntity(ClimateEntity, RestoreEntity):
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set new hvac mode and transmit the full updated state."""
         self._attr_hvac_mode = hvac_mode
+        if hvac_mode != HVACMode.OFF:
+            self._attr_last_active_hvac_mode = hvac_mode
         await self._async_send_current_state()
         self.async_write_ha_state()
+
+    async def async_turn_on(self) -> None:
+        """Turn the AC on, resuming the most recently active hvac mode."""
+        target_mode = self._attr_last_active_hvac_mode
+        if target_mode not in (self._attr_hvac_modes or []):
+            controllable_modes = [
+                mode for mode in (self._attr_hvac_modes or []) if mode != HVACMode.OFF
+            ]
+            if not controllable_modes:
+                raise HomeAssistantError(
+                    "No controllable HVAC mode is available to turn on -- "
+                    "no IR codes are known for this AC yet. Use this "
+                    "entity's 'Configure' (Learn Command) options to teach "
+                    "it from your real remote."
+                )
+            target_mode = controllable_modes[0]
+        await self.async_set_hvac_mode(target_mode)
+
+    async def async_turn_off(self) -> None:
+        """Turn the AC off."""
+        await self.async_set_hvac_mode(HVACMode.OFF)
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set new fan mode and transmit the full updated state."""

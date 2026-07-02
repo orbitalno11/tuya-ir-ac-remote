@@ -1,12 +1,16 @@
 """Unit tests for the TuyaIrClimateEntity."""
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.components.climate import HVACMode
+from homeassistant.core import State
 from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.tuya_ir_ac.climate import TuyaIrClimateEntity
+from custom_components.tuya_ir_ac.climate import (
+    TuyaIrClimateEntity,
+    TuyaIrLastActiveModeData,
+)
 from custom_components.tuya_ir_ac.codes.schema import CodeTable
 from custom_components.tuya_ir_ac.const import DOMAIN
 from custom_components.tuya_ir_ac.tuya_ir import TuyaIrConnectionError
@@ -101,6 +105,122 @@ async def test_turn_off_sends_off_code(hass):
     entity._attr_hvac_mode = HVACMode.COOL
     await entity.async_set_hvac_mode(HVACMode.OFF)
     hub.async_send_code.assert_awaited_once_with("OFFCODE")
+
+
+async def test_turn_off_uses_async_turn_off(hass):
+    # Exercises the actual entry point Google Assistant / HA core calls for
+    # "turn off", as opposed to test_turn_off_sends_off_code which calls
+    # async_set_hvac_mode directly.
+    entity, hub = _make_entity(hass)
+    entity._attr_hvac_mode = HVACMode.COOL
+
+    await entity.async_turn_off()
+
+    hub.async_send_code.assert_awaited_once_with("OFFCODE")
+    assert entity.hvac_mode == HVACMode.OFF
+
+
+async def test_turn_on_resumes_last_active_mode_with_existing_temp_and_fan(hass):
+    entity, hub = _make_entity(hass)
+    entity._attr_target_temperature = 22
+    entity._attr_fan_mode = "low"
+    entity._attr_swing_mode = "on"
+    await entity.async_set_hvac_mode(HVACMode.COOL)  # COOL22LOWONCODE
+    await entity.async_set_hvac_mode(HVACMode.OFF)  # OFFCODE
+    hub.async_send_code.reset_mock()
+
+    await entity.async_turn_on()
+
+    hub.async_send_code.assert_awaited_once_with("COOL22LOWONCODE")
+    assert entity.hvac_mode == HVACMode.COOL
+    assert entity.target_temperature == 22
+    assert entity.fan_mode == "low"
+
+
+async def test_turn_on_resumes_heat_not_default_priority_mode(hass):
+    # HEAT is not first in CONTROLLABLE_HVAC_MODES priority order (COOL is);
+    # this proves turn_on tracks the actual last-active mode rather than
+    # falling back to a fixed priority pick.
+    entity, hub = _make_entity(hass)
+    entity._attr_target_temperature = 22
+    entity._attr_fan_mode = "auto"
+    entity._attr_swing_mode = "off"
+    await entity.async_set_hvac_mode(HVACMode.HEAT)  # HEAT22CODE
+    await entity.async_set_hvac_mode(HVACMode.OFF)
+    hub.async_send_code.reset_mock()
+
+    await entity.async_turn_on()
+
+    hub.async_send_code.assert_awaited_once_with("HEAT22CODE")
+    assert entity.hvac_mode == HVACMode.HEAT
+
+
+async def test_turn_on_defaults_when_never_active_before(hass):
+    # Fresh entity, never set to a non-off mode -- must pick a sane default.
+    entity, hub = _make_entity(hass)
+    entity._attr_fan_mode = "auto"
+    entity._attr_swing_mode = "off"
+    entity._attr_target_temperature = 24  # cool_24_* exists in FAKE_TABLE
+
+    await entity.async_turn_on()
+
+    hub.async_send_code.assert_awaited_once_with("COOL24CODE")
+    assert entity.hvac_mode == HVACMode.COOL
+
+
+async def test_last_active_mode_survives_restart(hass):
+    entity, hub = _make_entity(hass)
+    with patch.object(
+        entity,
+        "async_get_last_state",
+        AsyncMock(
+            return_value=State(
+                entity.entity_id,
+                HVACMode.OFF,
+                {"temperature": 22, "fan_mode": "low", "swing_mode": "on"},
+            )
+        ),
+    ), patch.object(
+        entity,
+        "async_get_last_extra_data",
+        AsyncMock(return_value=TuyaIrLastActiveModeData(last_active_hvac_mode="cool")),
+    ):
+        await entity.async_added_to_hass()
+
+    # Plain state restore alone (off + attrs) cannot recover "was cool
+    # before off" -- that must come from the extra-data side-channel.
+    assert entity.hvac_mode == HVACMode.OFF
+    assert entity._attr_last_active_hvac_mode == HVACMode.COOL
+
+    await entity.async_turn_on()
+
+    hub.async_send_code.assert_awaited_once_with("COOL22LOWONCODE")
+    assert entity.hvac_mode == HVACMode.COOL
+
+
+async def test_turn_on_raises_when_no_controllable_modes(hass):
+    # A code table with only "off" -- e.g. mid-setup before any Learn
+    # Command codes exist -- must surface a clear error rather than
+    # silently no-op'ing back to HVACMode.OFF.
+    empty_table = CodeTable(
+        brand="panasonic", variant="test", protocol="state", codes={"off": "OFFCODE"}
+    )
+    entity, hub = _make_entity(hass)
+    entity._builtin_table = empty_table
+    entity._attr_hvac_modes = entity._derive_supported_hvac_modes()
+
+    with pytest.raises(HomeAssistantError, match="No controllable HVAC mode"):
+        await entity.async_turn_on()
+    hub.async_send_code.assert_not_awaited()
+
+
+async def test_last_active_mode_defaults_on_fresh_install_extra_data_none(hass):
+    # Fresh install: async_get_last_state()/async_get_last_extra_data() both
+    # naturally resolve to None with no prior restore data.
+    entity, _ = _make_entity(hass)
+    await entity.async_added_to_hass()
+
+    assert entity._attr_last_active_hvac_mode == HVACMode.COOL
 
 
 async def test_learned_code_overrides_builtin(hass):
