@@ -14,7 +14,9 @@ permissions:
 jobs:
   claude:
     runs-on: ubuntu-latest
-    if: contains(github.event.comment.body, '@claude')
+    if: |
+      contains(github.event.comment.body, '@claude') &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
