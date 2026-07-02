@@ -1,5 +1,9 @@
 # Tuya IR AC Remote
 
+[![Validate](https://github.com/orbitalno11/tuya-ir-ac-remote/actions/workflows/validate.yml/badge.svg)](https://github.com/orbitalno11/tuya-ir-ac-remote/actions/workflows/validate.yml)
+[![Coverage](https://raw.githubusercontent.com/orbitalno11/tuya-ir-ac-remote/badges/coverage.svg)](https://github.com/orbitalno11/tuya-ir-ac-remote/actions/workflows/validate.yml)
+[![Latest release](https://img.shields.io/github/v/release/orbitalno11/tuya-ir-ac-remote?include_prereleases&sort=semver&label=latest)](https://github.com/orbitalno11/tuya-ir-ac-remote/releases)
+
 A Home Assistant custom integration that turns a **Tuya local-network IR
 hub** (a "universal smart IR remote") into a `climate` entity for
 controlling a **Panasonic** or **Carrier** air conditioner -- entirely over
@@ -192,5 +196,5 @@ added back.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements_test.txt
-pytest tests/ -v
+pytest tests/ -v --cov --cov-report=term-missing
 ```

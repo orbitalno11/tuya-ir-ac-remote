@@ -35,6 +35,8 @@ jobs:
   pytest:
     name: Run tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -45,4 +47,22 @@ jobs:
           pip install -r requirements_test.txt
       - name: Run pytest
         run: |
-          pytest tests/ -v
+          pytest tests/ -v --cov --cov-report=term-missing --cov-report=xml
+      - name: Generate coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          genbadge coverage -i coverage.xml -o coverage.svg
+      - name: Publish coverage badge to badges branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir /tmp/badges
+          cp coverage.svg /tmp/badges/
+          cd /tmp/badges
+          git init -b badges
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add coverage.svg
+          git commit -m "Update coverage badge"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badges
